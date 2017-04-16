@@ -10,9 +10,11 @@ const int relayPin = 12;  // Active high
 const int ledPin   = 13;  // Active low
 
 /* MQTT Settings */
-const char* mqttTopic = "/garden/weatherstation/humidity";   // MQTT topic
-IPAddress broker(192,168,0,106);          // Address of the MQTT broker
-#define CLIENT_ID "client-1c6adc"         // Client ID to send to the broker
+const char* mqttTopic = "/room1/main/light";          // MQTT topic
+const char* mqttPub =   "/room1/main/light/status";   // MQTT topic for publishing relay state
+IPAddress broker(192,168,0,10);                       // Address of the MQTT broker
+#define CLIENT_ID "client-1c6adc"                     // Client ID to send to the broker
+
 #define USE_MQTT_AUTH
 #define MQTT_USER "admin"
 #define MQTT_PASSWORD "********"
@@ -153,6 +155,15 @@ void setRelay(int state)
     relayState = state;
     digitalWrite(relayPin, relayState);
     digitalWrite(ledPin, !relayState);
+
+    if(relayState == 1)
+    {
+      client.publish(mqttPub, "ON"); 
+    }
+    else
+    {
+      client.publish(mqttPub, "OFF"); 
+    }
   }
 }
 
