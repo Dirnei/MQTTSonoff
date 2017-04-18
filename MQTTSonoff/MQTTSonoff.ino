@@ -2,32 +2,64 @@
 #include <PubSubClient.h>
 
 /* WiFi Settings */
-const char* ssid     = "ENTER SSID";
-const char* password = "AND PASSWORD";
-
-/* Sonoff Outputs */
-const int relayPin = 12;  // Active high
-const int ledPin   = 13;  // Active low
+const char* ssid     = "Dirnhofer-AP";
+const char* password = "1719577557";
 
 /* MQTT Settings */
-const char* mqttTopic = "/room1/main/light";          // MQTT topic
-const char* mqttPub =   "/room1/main/light/status";   // MQTT topic for publishing relay state
-IPAddress broker(192,168,0,10);                       // Address of the MQTT broker
-#define CLIENT_ID "client-1c6adc"                     // Client ID to send to the broker
+const char* mqttTopic1 = "/room1/main/light1";       // topic 1 --> relay 1   
+const char* mqttTopic2 = "/room1/main/light2";       // topic 2 --> relay 2
+const char* mqttTopic3 = "/room1/main/light3";       // topic 3 --> relay 3
+const char* mqttTopic4 = "/room1/main/light4";       // topic 4 --> relay 4
 
+const char* mqttPubPrefix =   "/status";             // MQTT topic for publishing relay state
+IPAddress broker(192,168,0,106);                      // Address of the MQTT broker
+#define CLIENT_ID "client-1c6adc"                    // Client ID to send to the broker
+
+// uncomment USE_MQTT_AUTH if you want to connect anonym
 #define USE_MQTT_AUTH
 #define MQTT_USER "admin"
-#define MQTT_PASSWORD "********"
+#define MQTT_PASSWORD "W00b60fc@"
+
+/* Sonoff Device */
+//#define SONOFF_1CH
+//#define SONOFF_2CH    //currently not supported
+#define SONOFF_4CH
+//#define SONOFF_TOUCH  //currently not supported
+
+#ifdef SONOFF_1CH
+  const int relayPins[] = {12};
+  int relayStates[] = {0};
+  const int statusLedPin= 13;  
+#endif
+
+#ifdef SONOFF_4CH
+  const int relayPins[] = {12,5,4,15};
+  int relayStates[] = {0,0,0,0};
+  const int statusLedPin = 13;
+#endif
+
 
 WiFiClient wificlient;
 PubSubClient client(wificlient);
 volatile int relayState = 1;
 
+
+
 void setup() 
 {
   /* Set up LED and Relay. LED is active-low */
-  pinMode(ledPin, OUTPUT);
+  pinMode(statusLedPin, OUTPUT);
+
+#ifdef SONOFF_1CH
   pinMode(relayPin, OUTPUT);
+#endif
+
+#ifdef SONOFF_4CH
+  pinMode(relayPins[0], OUTPUT);
+  pinMode(relayPins[1], OUTPUT);
+  pinMode(relayPins[2], OUTPUT);
+  pinMode(relayPins[3], OUTPUT);
+#endif
 
   setRelay(0);
   
@@ -43,6 +75,38 @@ void setup()
   /* Prepare MQTT client */
   client.setServer(broker, 1883);
   client.setCallback(mqttMessage);
+
+
+  pinMode(0,INPUT);
+  pinMode(9,INPUT);
+  pinMode(10,INPUT);
+  pinMode(14,INPUT);
+  
+  attachInterrupt(0, buttonInterrupt1, RISING);
+  attachInterrupt(9, buttonInterrupt2, RISING);
+  attachInterrupt(10, buttonInterrupt3, RISING);
+  attachInterrupt(14, buttonInterrupt4, RISING);
+}
+
+void buttonInterrupt1()
+{
+  setRelay(0, -1, (char*)mqttTopic1);
+}
+
+
+void buttonInterrupt2()
+{
+  setRelay(1, -1, (char*)mqttTopic2);
+}
+
+void buttonInterrupt3()
+{
+  setRelay(2, -1, (char*)mqttTopic3);
+}
+
+void buttonInterrupt4()
+{
+  setRelay(3, -1, (char*)mqttTopic4);
 }
 
 void loop() 
@@ -70,11 +134,11 @@ void reconnectWifi()
     // blinking LED while connecting...
     if(counter++ % 2 == 0)
     {
-      digitalWrite(ledPin, HIGH);
+      digitalWrite(statusLedPin, HIGH);
     }
     else
     {
-      digitalWrite(ledPin,LOW);
+      digitalWrite(statusLedPin,LOW);
     }
       
     // also putting a . on the serial for debugging
@@ -106,7 +170,10 @@ void reconnectMQTT()
 #endif
     {
       Serial.println("connected to MQTT broker");
-      client.subscribe(mqttTopic);
+      client.subscribe(mqttTopic1);
+      client.subscribe(mqttTopic2);
+      client.subscribe(mqttTopic3);
+      client.subscribe(mqttTopic4);
     } 
     else 
     {
@@ -131,40 +198,74 @@ void mqttMessage(char* topic, byte* payload, unsigned int length)
   Serial.println();
 
   
-  if (!strcmp(topic, mqttTopic)) 
+  if (!strcmp(topic, mqttTopic1)) 
   {
+    setRelay(0, getDesiredRelayState(payload, length), topic);
+  }
+  else if (!strcmp(topic, mqttTopic2))
+  {
+    setRelay(1, getDesiredRelayState(payload, length), topic);
+  }
+  else if (!strcmp(topic, mqttTopic3))
+  {
+    setRelay(2, getDesiredRelayState(payload, length), topic);
+  }
+  else if (!strcmp(topic, mqttTopic4))
+  {
+    setRelay(3, getDesiredRelayState(payload, length), topic);
+  }
+}
+
+int getDesiredRelayState(byte* payload, unsigned int length)
+{
     if (!strncasecmp_P((char *)payload, "OFF", length)) 
     {
-      setRelay(0);
+      return 0;
     }
     else if (!strncasecmp_P((char *)payload, "ON", length)) 
     {
-      setRelay(1);
+      return 1;
     }
-    else if ( ! strncasecmp_P((char *)payload, "TOGGLE", length))
+    else if (!strncasecmp_P((char *)payload, "TOGGLE", length))
     {
-      setRelay(!relayState);
+      return -1;
     }
-  }
 }
 
 void setRelay(int state)
 {
-  if(relayState != state)
-  {
-    relayState = state;
-    digitalWrite(relayPin, relayState);
-    digitalWrite(ledPin, !relayState);
+  #ifdef SONOFF_1CH
+  setRelay(relayPin, ledPin, state);
+  #endif
+}
 
-    if(relayState == 1)
+void setRelay(int pinIndex, int state, char* topic)
+{
+    int pin = relayPins[pinIndex];
+
+    if (state == -1)
     {
-      client.publish(mqttPub, "ON"); 
+      state = !relayStates[pinIndex];
+    }
+    
+    digitalWrite(pin, state);
+    relayStates[pinIndex] = state;
+    
+#ifdef SONOFF_1CH
+    digitalWrite(statusLedPin, !state);
+#endif
+
+    char mqttPubTopic[128];
+    sprintf(mqttPubTopic, "%s%s", topic, mqttPubPrefix);
+    
+    if(state == 1)
+    {
+      Serial.println("ON");
     }
     else
-    {
-      client.publish(mqttPub, "OFF"); 
+    { 
+      Serial.println("OFF");
     }
-  }
 }
 
 
