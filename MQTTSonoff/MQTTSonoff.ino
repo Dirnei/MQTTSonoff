@@ -2,8 +2,8 @@
 #include <PubSubClient.h>
 
 /* WiFi Settings */
-const char* ssid     = "Dirnhofer-AP";
-const char* password = "1719577557";
+const char* ssid     = "YOURWIFINAME";
+const char* password = "YOURPASSWORD";
 
 /* MQTT Settings */
 const char* mqttTopic1 = "/room1/main/light1";       // topic 1 --> relay 1   
@@ -12,18 +12,20 @@ const char* mqttTopic3 = "/room1/main/light3";       // topic 3 --> relay 3
 const char* mqttTopic4 = "/room1/main/light4";       // topic 4 --> relay 4
 
 const char* mqttPubPrefix =   "/status";             // MQTT topic for publishing relay state
+#define ENABLE_FEEDBACK                              // enables the mqtt status feedback after changing relay state
+
 IPAddress broker(192,168,0,106);                      // Address of the MQTT broker
 #define CLIENT_ID "client-1c6adc"                    // Client ID to send to the broker
 
 // uncomment USE_MQTT_AUTH if you want to connect anonym
 #define USE_MQTT_AUTH
-#define MQTT_USER "admin"
-#define MQTT_PASSWORD "W00b60fc@"
+#define MQTT_USER "mqttuser"
+#define MQTT_PASSWORD "***********"
 
 /* Sonoff Device */
-//#define SONOFF_1CH
+#define SONOFF_1CH
 //#define SONOFF_2CH    //currently not supported
-#define SONOFF_4CH
+//#define SONOFF_4CH
 //#define SONOFF_TOUCH  //currently not supported
 
 #ifdef SONOFF_1CH
@@ -241,8 +243,13 @@ void setRelay(int state)
 
 void setRelay(int pinIndex, int state, char* topic)
 {
-    int pin = relayPins[pinIndex];
 
+#ifdef SONOFF_1CH
+    pinIndex = 0;
+#endif
+
+    int pin = relayPins[pinIndex];
+    
     if (state == -1)
     {
       state = !relayStates[pinIndex];
@@ -255,6 +262,8 @@ void setRelay(int pinIndex, int state, char* topic)
     digitalWrite(statusLedPin, !state);
 #endif
 
+#ifdef ENABLE_FEEDBACK
+
     char mqttPubTopic[128];
     sprintf(mqttPubTopic, "%s%s", topic, mqttPubPrefix);
     
@@ -266,6 +275,8 @@ void setRelay(int pinIndex, int state, char* topic)
     { 
       Serial.println("OFF");
     }
+
+#endif
 }
 
 
