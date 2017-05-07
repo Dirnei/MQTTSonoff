@@ -1,26 +1,26 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-/* WiFi Settings */
-const char* ssid     = "YOURWIFINAME";
-const char* password = "YOURPASSWORD";
-
 /* MQTT Settings */
-const char* mqttTopic1 = "/room1/main/light1";       // topic 1 --> relay 1   
-const char* mqttTopic2 = "/room1/main/light2";       // topic 2 --> relay 2
-const char* mqttTopic3 = "/room1/main/light3";       // topic 3 --> relay 3
-const char* mqttTopic4 = "/room1/main/light4";       // topic 4 --> relay 4
+const char* mqttTopic1 = "room1/main/light1";       // topic 1 --> relay 1
+const char* mqttTopic2 = "room1/main/light2";       // topic 2 --> relay 2
+const char* mqttTopic3 = "room1/main/light3";       // topic 3 --> relay 3
+const char* mqttTopic4 = "room1/main/light4";       // topic 4 --> relay 4
 
 const char* mqttPubPrefix =   "/status";             // MQTT topic for publishing relay state
 #define ENABLE_FEEDBACK                              // enables the mqtt status feedback after changing relay state
 
-IPAddress broker(192,168,0,106);                      // Address of the MQTT broker
-#define CLIENT_ID "client-1c6adc"                    // Client ID to send to the broker
+IPAddress broker(192,168,0,106);                     // Address of the MQTT broker
+#define CLIENT_ID "client-000000"                    // Client ID to send to the broker
+
+/* WiFi Settings */
+const char* ssid     = "SSID";
+const char* password = "PASSWORD";
 
 // uncomment USE_MQTT_AUTH if you want to connect anonym
 #define USE_MQTT_AUTH
-#define MQTT_USER "mqttuser"
-#define MQTT_PASSWORD "***********"
+#define MQTT_USER "mmqttuser"
+#define MQTT_PASSWORD "********"
 
 /* Sonoff Device */
 #define SONOFF_1CH
@@ -53,7 +53,7 @@ void setup()
   pinMode(statusLedPin, OUTPUT);
 
 #ifdef SONOFF_1CH
-  pinMode(relayPin, OUTPUT);
+  pinMode(relayPins[0], OUTPUT);
 #endif
 
 #ifdef SONOFF_4CH
@@ -67,10 +67,10 @@ void setup()
   
   Serial.begin(115200);
   WiFi.mode(WIFI_STA);
-  reconnectWifi();
   
   Serial.print("Connecting to: ");
   Serial.println(ssid);
+  reconnectWifi();
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 
@@ -80,14 +80,16 @@ void setup()
 
 
   pinMode(0,INPUT);
+  attachInterrupt(0, buttonInterrupt1, RISING);
+#ifdef SONOFF_4CH
   pinMode(9,INPUT);
   pinMode(10,INPUT);
   pinMode(14,INPUT);
   
-  attachInterrupt(0, buttonInterrupt1, RISING);
   attachInterrupt(9, buttonInterrupt2, RISING);
   attachInterrupt(10, buttonInterrupt3, RISING);
   attachInterrupt(14, buttonInterrupt4, RISING);
+#endif
 }
 
 void buttonInterrupt1()
@@ -216,10 +218,15 @@ void mqttMessage(char* topic, byte* payload, unsigned int length)
   {
     setRelay(3, getDesiredRelayState(payload, length), topic);
   }
+  else
+  {
+    Serial.println("UKNOWN TOPIC");
+  }
 }
 
 int getDesiredRelayState(byte* payload, unsigned int length)
 {
+  
     if (!strncasecmp_P((char *)payload, "OFF", length)) 
     {
       return 0;
@@ -237,7 +244,7 @@ int getDesiredRelayState(byte* payload, unsigned int length)
 void setRelay(int state)
 {
   #ifdef SONOFF_1CH
-  setRelay(relayPin, ledPin, state);
+  setRelay(relayPins[0], state, (char*)mqttTopic1);
   #endif
 }
 
@@ -270,10 +277,12 @@ void setRelay(int pinIndex, int state, char* topic)
     if(state == 1)
     {
       Serial.println("ON");
+      client.publish(mqttPubTopic, "ON");
     }
     else
     { 
       Serial.println("OFF");
+      client.publish(mqttPubTopic, "OFF");
     }
 
 #endif
