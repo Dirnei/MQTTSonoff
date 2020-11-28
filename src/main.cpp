@@ -204,6 +204,7 @@ void loop()
         static bool stateChanged = false;
         for (int i = 0; i < CHANNEL_COUNT; i++)
         {
+            _channels[i].loop();
             if (_channels[i].hasStateChanged())
             {
                 stateChanged = true;

@@ -19,6 +19,7 @@ class Channel
     bool sateRequested();
     void subscribe(const char *baseTopic);
     bool handlePayload(char *topic, JsonDocument &doc);
+    void loop();
 
   protected:
     uint8_t _index;
@@ -27,6 +28,8 @@ class Channel
     bool _state;
     bool _stateChanged;
     bool _stateRequested;
+    bool _needsReset;
+    uint _resetAt;
 };
 
 extern PubSubClient _client;

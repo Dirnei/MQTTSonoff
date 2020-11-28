@@ -81,22 +81,40 @@ bool Channel::handlePayload(char *topic, JsonDocument &doc)
             return true;
         }
 
+
         const char *state = doc["state"];
+        int8_t targetState = -1;
         if (strcasecmp(state, "on") == 0)
         {
-            setRelay(1);
+            targetState = 1;
         }
         else if (strcasecmp(state, "off") == 0)
         {
-            setRelay(0);
+            targetState = 0;
         }
         else if (strcasecmp(state, "toggle") == 0)
         {
-            setRelay(-1);
+            targetState = -1;
+        }
+
+        setRelay(targetState);
+        if (doc.containsKey("resetIn") && _state == 1)
+        {
+            _needsReset = true;
+            _resetAt = millis() + doc["resetIn"].as<uint16_t>();
         }
 
         return true;
     }
 
     return false;
+}
+
+void Channel::loop()
+{
+    if (_needsReset && _resetAt < millis())
+    {
+        _needsReset = false;
+        setRelay(0);
+    }
 }
