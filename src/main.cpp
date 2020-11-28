@@ -10,7 +10,12 @@
 #define CHANNEL_COUNT 1
 Channel _channels[] = {Channel(0, 12, 0)};
 #endif
-// 0,9,10,14
+
+#ifdef SONOFF_2CH
+#define CHANNEL_COUNT 2
+Channel _channels[] = {Channel(0, 12, 0), Channel(1, 5, 9)};
+#endif
+
 #ifdef SONOFF_4CH
 #define CHANNEL_COUNT 4
 Channel _channels[] = {Channel(0, 12, 0), Channel(1, 5, 9), Channel(2, 4, 10), Channel(3, 15, 14)};
