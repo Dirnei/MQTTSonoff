@@ -98,10 +98,10 @@ It will be published after it is connected and on every change of the relay. Pay
 }
 ```
 
-### Sate
+#### Sate
 
 Valid values are `on`, `off`, `toggle`.
 
-### ResetIn _(optional)_
+#### ResetIn _(optional)_
 
 If it is set, the relay state will be turned off after the given timeout in milliseconds.
