@@ -7,6 +7,7 @@
 /* MQTT Settings */
 char _basetopic[] = "Your/base/topic";
 char _mqttBroker[] = "192.168.0.251";
+bool _retainStates = true;
 
 #define WIFI_SSID "Your-SSID"
 #define WIFI_PASS "YourSecurePassword"
@@ -140,7 +141,9 @@ void reconnectWifi()
 
 void publishState()
 {
-    StaticJsonDocument<128> doc;
+    Serial.println(WiFi.localIP());
+
+    StaticJsonDocument<256> doc;
     doc["state"] = "online";
 
     for (int i = 0; i < CHANNEL_COUNT; i++)
@@ -150,9 +153,9 @@ void publishState()
         doc[channel] = _channels[i].getState();
     }
 
-    char buf[128];
+    char buf[256];
     serializeJson(doc, buf);
-    _client.publish(_basetopic, buf);
+    _client.publish(_basetopic, buf, _retainStates);
     Serial.print(" [All Channels] > Publishing channel state\n");
 }
 
@@ -167,7 +170,7 @@ void publishChannelState(int index)
     snprintf(topic, 64, "%s/channel_%d", _basetopic, index);
 
     Serial.printf(" [Channel %d] > Publishing channel state\n", index);
-    _client.publish(topic, buf);
+    _client.publish(topic, buf, _retainStates);
 }
 
 void reconnectMQTT()
@@ -179,9 +182,9 @@ void reconnectMQTT()
 
         // Attempt to connect
 #ifdef USE_MQTT_AUTH
-        if (_client.connect(CLIENT_ID, MQTT_USER, MQTT_PASSWORD))
+        if (_client.connect(CLIENT_ID, MQTT_USER, MQTT_PASSWORD, _basetopic, 0, true, "{\"status\": \"offline\"}"))
 #else
-        if (_client.connect(CLIENT_ID))
+        if (_client.connect(CLIENT_ID), _basetopic, 0, true, "{\"status\": \"offline\"}")
 #endif
         {
             Serial.println("connected to MQTT broker");

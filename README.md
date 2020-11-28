@@ -23,6 +23,7 @@ If you wan't to use this firmware you have to clone this repository and change s
 /* MQTT Settings */
 char _basetopic[] = "Your/base/topic";
 char _mqttBroker[] = "192.168.0.251";
+bool _retainStates = true;
 
 #define WIFI_SSID "Your-SSID"
 #define WIFI_PASS "YourSecurePassword"
