@@ -98,7 +98,7 @@ It will be published after it is connected and on every change of the relay. Pay
 }
 ```
 
-#### Sate
+#### State
 
 Valid values are `on`, `off`, `toggle`.
 
