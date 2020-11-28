@@ -44,4 +44,64 @@ bool _retainStates = true;
 
 ```
 
-> If someone wan't to help to imporove this little library, feel free to do so :)
+## MQTT Topics
+
+### Status Topic
+
+> Your/base/topic
+
+It will be published after it is connected and on every change of the relays. Payload is as follows:
+
+```json
+{
+  "state": "online",
+  "ip": "192.168.0.125",
+  "channel_0": false,
+  "channel_1": false,
+  "channel_2": false,
+  "channel_3": false
+}
+```
+
+### Channel Topic
+
+> Your/base/topic/channel_**:index**
+
+It will be published after it is connected and on every change of the relay. Payload is as follows:
+
+```json
+{
+  "state": "on"
+}
+```
+
+### Refresh/Request channel state
+
+> Your/base/topic/channel_**:index**/get
+
+If you want to get the current state published again you can send an empty object to this topic.
+
+```json
+{}
+```
+
+### Set channel
+
+> Your/base/topic/channel_**:index**/set
+
+It will be published after it is connected and on every change of the relay. Payload is as follows:
+
+```json
+{
+  "state": "toggle",
+  "resetIn": 10000
+}
+```
+
+### Sate
+
+Valid values are `on`, `off`, `toggle`.
+
+### ResetIn _(optional)_
+
+If it is set, the relay state will be turned off after the given timeout in milliseconds.
