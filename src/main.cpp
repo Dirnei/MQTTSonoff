@@ -66,6 +66,26 @@ void onMqttMessage(char *topic, uint8_t *payload, unsigned int length)
     Serial.println("----------------------------------------------------------------------------------\n");
 }
 
+void ICACHE_RAM_ATTR buttonPressed0()
+{
+    _channels[0].setRelay(-1);
+}
+
+void ICACHE_RAM_ATTR buttonPressed1()
+{
+    _channels[1].setRelay(-1);
+}
+
+void ICACHE_RAM_ATTR buttonPressed2()
+{
+    _channels[2].setRelay(-1);
+}
+
+void ICACHE_RAM_ATTR buttonPressed3()
+{
+    _channels[3].setRelay(-1);
+}
+
 void setup()
 {
     Serial.begin(115200);
@@ -73,10 +93,16 @@ void setup()
     /* Set up LED and Relay. LED is active-low */
     pinMode(statusLedPin, OUTPUT);
     digitalWrite(statusLedPin, HIGH);
-
     WiFi.mode(WIFI_STA);
     _client.setServer(_mqttBroker, 1883);
     _client.setCallback(onMqttMessage);
+
+    attachInterrupt(digitalPinToInterrupt(_channels[0].getButtonPin()), buttonPressed0, RISING);
+#ifdef SONOFF_4CH
+    attachInterrupt(digitalPinToInterrupt(_channels[1].getButtonPin()), buttonPressed1, RISING);
+    attachInterrupt(digitalPinToInterrupt(_channels[2].getButtonPin()), buttonPressed2, RISING);
+    attachInterrupt(digitalPinToInterrupt(_channels[3].getButtonPin()), buttonPressed3, RISING);
+#endif
 }
 
 uint _nextOutput = 0;
@@ -199,7 +225,7 @@ void loop()
                 stateChanged = true;
                 publishChannelState(i);
             }
-            else if(_channels[i].sateRequested())
+            else if (_channels[i].sateRequested())
             {
                 publishChannelState(i);
             }
