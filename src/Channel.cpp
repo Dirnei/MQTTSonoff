@@ -18,9 +18,12 @@ void Channel::setRelay(int8_t state)
         state = !_state;
     }
 
-    digitalWrite(_pin, state);
-    _state = state;
-    _stateChanged = true;
+    if (state != _state)
+    {
+        digitalWrite(_pin, state);
+        _state = state;
+        _stateChanged = true;
+    }
 }
 
 void Channel::buttonPress()
