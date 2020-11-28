@@ -145,7 +145,8 @@ void publishState()
 
     StaticJsonDocument<256> doc;
     doc["state"] = "online";
-
+    doc["ip"] = WiFi.localIP().toString();
+    
     for (int i = 0; i < CHANNEL_COUNT; i++)
     {
         char channel[10];
