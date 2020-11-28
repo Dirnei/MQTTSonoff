@@ -165,7 +165,7 @@ void reconnectMQTT()
 #ifdef USE_MQTT_AUTH
         if (_client.connect(CLIENT_ID, MQTT_USER, MQTT_PASSWORD, _basetopic, 0, true, "{\"status\": \"offline\"}"))
 #else
-        if (_client.connect(CLIENT_ID), _basetopic, 0, true, "{\"status\": \"offline\"}")
+        if (_client.connect(CLIENT_ID, _basetopic, 0, true, "{\"status\": \"offline\"}"))
 #endif
         {
             Serial.println("connected to MQTT broker");
@@ -183,8 +183,12 @@ void reconnectMQTT()
             Serial.print(" Reconnect failed. State=");
             Serial.println(_client.state());
             Serial.println("Retry in 3 seconds...");
-            // Wait 5 seconds before retrying
-            delay(3000);
+
+            for (int i = 0; i < 30; i++)
+            {
+                digitalWrite(statusLedPin, i % 2);
+                delay(100);
+            }
         }
     }
 }
